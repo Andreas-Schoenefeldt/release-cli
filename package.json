@@ -1,6 +1,6 @@
 {
-  "name": "release-cli",
-  "version": "1.0.1",
+  "name": "easy-release-cli",
+  "version": "1.0.2",
   "type": "module",
   "main": "src/release.js",
   "bin": {
