@@ -1,0 +1,11 @@
+{
+  "name": "release-cli",
+  "version": "1.0.1",
+  "main": "src/release.js",
+  "bin": {
+    "release": "bin/cli.js"
+  },
+  "dependencies": {
+    "semver": "^7.8.5"
+  }
+}
