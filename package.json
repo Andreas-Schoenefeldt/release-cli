@@ -1,11 +1,13 @@
 {
   "name": "release-cli",
   "version": "1.0.1",
+  "type": "module",
   "main": "src/release.js",
   "bin": {
     "release": "bin/cli.js"
   },
   "dependencies": {
+    "@inquirer/prompts": "^8.6.0",
     "semver": "^7.8.5"
   }
 }

@@ -1,38 +1,16 @@
 'use strict';
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
-const semver = require('semver');
+import { select, input } from '@inquirer/prompts';
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import semver from 'semver';
 
 const DEFAULT_REGEXP = /(['"]?version['"]?\s*:\s*['"]?)(\d+\.\d+\.\d+)(-[\w.]+)?(['"]?)/gmi;
 
 function run(cmd, cwd) {
     console.log(`> ${cmd}`);
     execSync(cmd, { stdio: 'inherit', cwd });
-}
-
-function askList(question, choices) {
-    return new Promise((resolve) => {
-        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        console.log(question);
-        choices.forEach((c, i) => console.log(`  ${i + 1}) ${c.name}`));
-        rl.question('> ', (answer) => {
-            rl.close();
-            resolve(choices[parseInt(answer, 10) - 1]?.value ?? null);
-        });
-    });
-}
-
-function askInput(question) {
-    return new Promise((resolve) => {
-        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        rl.question(question, (answer) => {
-            rl.close();
-            resolve(answer.trim());
-        });
-    });
 }
 
 async function pickVersion(currentVersion) {
@@ -42,9 +20,9 @@ async function pickVersion(currentVersion) {
     }));
     choices.push({ name: 'Custom: ?.?.? Specify version...', value: 'custom' });
 
-    let version = await askList(`Bump version from ${currentVersion} to:`, choices);
+    let version = await select({ message: `Bump version from ${currentVersion} to:`, choices });
     while (version === 'custom' || !version) {
-        version = await askInput('Enter a valid semver (e.g. 1.2.3): ');
+        version = await input({ message: 'Enter a valid semver (e.g. 1.2.3): ' });
         if (!semver.valid(version)) version = 'custom';
     }
     return version;
@@ -74,7 +52,7 @@ function writeVersionToFiles(files, regExp, newVersion, cwd) {
  * @param {RegExp} [options.regExp]               Regex used to find/replace the version (must have 3 capture groups: prefix, version, suffix)
  * @param {string} [options.cwd=process.cwd()]    Project root
  */
-async function release(options = {}) {
+export default async function release(options = {}) {
     const {
         main = 'main',
         dev = 'develop',
@@ -112,5 +90,3 @@ async function release(options = {}) {
     console.log(`\n✔ Release ${newVersion} complete.`);
     return newVersion;
 }
-
-module.exports = release;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const release = require('../src/release');
+import release from '../src/release.js';
 
 const opts = {};
 for (const arg of process.argv.slice(2)) {
