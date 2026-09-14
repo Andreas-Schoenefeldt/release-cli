@@ -10,7 +10,34 @@ const DEFAULT_REGEXP = /(['"]?version['"]?\s*:\s*['"]?)(\d+\.\d+\.\d+)(-[\w.]+)?
 
 function run(cmd, cwd) {
     console.log(`> ${cmd}`);
-    execSync(cmd, { stdio: 'inherit', cwd });
+    const res = execSync(cmd, { cwd, encoding: 'utf8' });
+    console.log(res);
+    return res;
+}
+
+function detectCurrentVersion(cwd) {
+    const pkgPath = path.resolve(cwd, 'package.json');
+
+    if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        return pkg.version;
+    }
+
+    // Fallback: find latest semver tag from git
+    console.log('No package.json found, falling back to latest semver tag');
+    const tags = run('git --no-pager tag --list', cwd)
+        .split('\n')
+        .map(t => t.trim())
+        .filter(Boolean)
+        .filter(t => semver.valid(t)); // drops non-semver tags
+
+    if (tags.length === 0) {
+        console.error('No package.json and no semver tags found');
+        return '0.0.0';
+    }
+
+    const latest = semver.maxSatisfying(tags, '*') || tags.sort(semver.compare).pop();
+    return semver.clean(latest);
 }
 
 async function pickVersion(currentVersion) {
@@ -58,10 +85,10 @@ export default async function release(options = {}) {
         dev = 'develop',
         files = ['package.json'],
         regExp = DEFAULT_REGEXP,
-        cwd = process.cwd()
+        cwd = process.cwd(),
     } = options;
 
-    const pkg = JSON.parse(fs.readFileSync(path.resolve(cwd, 'package.json'), 'utf8'));
+    const currentVersion = detectCurrentVersion(cwd);
 
     console.log(`\n> Merging ${dev} into ${main}`);
     run(`git checkout ${dev}`, cwd);
@@ -71,13 +98,17 @@ export default async function release(options = {}) {
     run(`git merge ${dev}`, cwd);
     run('git push', cwd);
 
-    const newVersion = await pickVersion(pkg.version);
+    const newVersion = await pickVersion(currentVersion);
     writeVersionToFiles(files, regExp, newVersion, cwd);
 
     const message = `Release ${newVersion}`;
 
-    run('git add -A', cwd);
-    run(`git commit -m "${message}"`, cwd);
+    const status = run('git status --porcelain', cwd);
+
+    if (status.trim()) {
+        run('git add -A', cwd);
+        run(`git commit -m "${message}"`, cwd);
+    }
     run(`git tag -a ${newVersion} -m "${message}"`, cwd);
     run(`git push origin ${newVersion}`, cwd);
 
