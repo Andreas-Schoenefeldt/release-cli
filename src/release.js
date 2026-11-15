@@ -75,6 +75,7 @@ function writeVersionToFiles(files, regExp, newVersion, cwd) {
  * @param {Object} [options]
  * @param {string} [options.main='main']       Main/production branch
  * @param {string} [options.dev='develop']        Development branch
+ * @param {boolean} [options.noMerge=false]       Do not merge the release branch into the main branch, just make the release on the current branch.
  * @param {string[]} [options.files=['package.json']]  Files to bump the version in
  * @param {RegExp} [options.regExp]               Regex used to find/replace the version (must have 3 capture groups: prefix, version, suffix)
  * @param {string} [options.cwd=process.cwd()]    Project root
@@ -85,18 +86,21 @@ export default async function release(options = {}) {
         dev = 'develop',
         files = ['package.json'],
         regExp = DEFAULT_REGEXP,
+        noMerge = false,
         cwd = process.cwd(),
     } = options;
 
     const currentVersion = detectCurrentVersion(cwd);
 
-    console.log(`\n> Merging ${dev} into ${main}`);
-    run(`git checkout ${dev}`, cwd);
-    run(`git pull origin ${dev}`, cwd);
-    run(`git checkout ${main}`, cwd);
-    run(`git pull origin ${main}`, cwd);
-    run(`git merge ${dev}`, cwd);
-    run('git push', cwd);
+    if (!noMerge) {
+        console.log(`\n> Merging ${dev} into ${main}`);
+        run(`git checkout ${dev}`, cwd);
+        run(`git pull origin ${dev}`, cwd);
+        run(`git checkout ${main}`, cwd);
+        run(`git pull origin ${main}`, cwd);
+        run(`git merge ${dev}`, cwd);
+        run('git push', cwd);
+    }
 
     const newVersion = await pickVersion(currentVersion);
     writeVersionToFiles(files, regExp, newVersion, cwd);
@@ -112,11 +116,13 @@ export default async function release(options = {}) {
     run(`git tag -a ${newVersion} -m "${message}"`, cwd);
     run(`git push origin ${newVersion}`, cwd);
 
-    console.log(`\n> Merging ${main} back into ${dev}`);
-    run(`git checkout ${dev}`, cwd);
-    run(`git pull origin ${dev}`, cwd);
-    run(`git merge ${main}`, cwd);
-    run('git push', cwd);
+    if (!noMerge) {
+        console.log(`\n> Merging ${main} back into ${dev}`);
+        run(`git checkout ${dev}`, cwd);
+        run(`git pull origin ${dev}`, cwd);
+        run(`git merge ${main}`, cwd);
+        run('git push', cwd);
+    }
 
     console.log(`\n✔ Release ${newVersion} complete.`);
     return newVersion;
