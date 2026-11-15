@@ -3,6 +3,8 @@ Small CLI Helper to easily make semver tags in git
 
 ## Usage
 
+From teh command line: `npx release --help` to print all the options.
+
 For advanced options create any js script, like a gulp file:
 
 ```js
